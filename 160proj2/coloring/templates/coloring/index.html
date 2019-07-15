@@ -1,0 +1,352 @@
+<!-- http://p2-paperjs-yliu-code-yliu-code.codeanyapp.com/coloring/ -->
+
+{% load static %}
+
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <title>P3 Coloring</title>
+
+  <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap.min.css" rel="stylesheet">   <!-- BOOTSTRAP -->
+  <script type="text/javascript" src="{% static 'coloring/vendors/jquery/jquery-3.3.1.min.js' %}"></script>
+  <script type="text/javascript" src="{% static 'coloring/vendors/jscolor/jscolor.js' %}"></script>
+  <script type="text/javascript" src="{% static 'coloring/vendors/paper/paper-full.min.js' %}"></script>
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.0/css/all.css" integrity="sha384-lZN37f5QGtY3VHgisS14W3ExzMWZxybE1SJSEsQp9S+oqd12jhcu+A56Ebc1zFSJ" crossorigin="anonymous"> <!-- FontAwesome Icons-->
+    
+  <style type="text/css">
+    #color-palette {
+      width: 90px;
+      background-color: #f1f1f1;
+      display: flex;
+      flex-wrap: wrap;
+      position: fixed;
+      top: 5%;
+      left: 0;
+      right: 90%;
+      margin-top: 10;
+      margin-bottom: 0;
+    }
+
+    .swatch {
+      width: 24px;
+      height: 24px;
+      -moz-border-radius: 12px;
+      -webkit-border-radius: 12px;
+      border-radius: 12px;
+      margin: 3px;
+    }
+
+    #myCanvas {
+      padding-left: 10px;
+      padding-right: 10px;
+      padding-top: 10px;
+      padding-bottom: 10px;
+      margin-left: auto;
+      margin-right: auto;
+      margin-bottom: 0;
+      display: block;
+    }
+    
+    #colorWheel {
+      width: 90px;
+      position: fixed;
+      right: 0;
+      top: 5%;
+    }
+    
+    #wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .button {
+      text-align: center;
+      font-size: 16px;
+      display: inline-block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    
+    .icon-container{
+      text-align: center;
+    }
+    
+    .wheel-des{
+      position:fixed;
+      right:5px;
+      top:10px;
+    }
+    
+    .pallete-des{
+      position:fixed;
+      left:5px;
+      top:10px;
+    }
+  </style>
+
+  <script type="text/javascript" canvas="canvas">
+    window.onload = function() {
+      var canvas = document.getElementById('myCanvas');
+
+      // coloring page
+      var mandala = {
+        item: null,
+        lastClicked: null,
+        filePath: '/static/coloring/images/mandala-freepik.svg'
+      };
+
+      // color palette
+      var cp = {
+        history: ["#000000"], // black selected by default
+        options: [],
+        $container: $('#color-palette')
+      }
+
+      // your rectangle gradient interaction goes in this function
+      // you may also add code outside of the function (e.g., global variables)
+      function myGradientInteraction() {
+        var tool = new paper.Tool();
+        let from = new paper.Point(250, 300);
+        let to = new paper.Point(475, 425);
+        let path = new paper.Path.Rectangle(from, to);
+        let start;
+        let end;
+
+        // Close the path
+        path.closed = true;
+
+        // Give the path a color and fill color
+        path.fillColor = 'red';
+
+        // Draw the path now
+        paper.view.draw();
+
+        tool.onMouseDown = function(event) {
+          start = event.point;
+        }
+
+        tool.onMouseUp = function(event) {
+          path.fillColor = {
+            gradient: {
+              stops: cp.history.slice(1).slice(-2)
+            },
+            origin: start,
+            destination: event.point
+          }
+        }
+      }
+
+      // your custom interaction goes here!
+      // you may replace everything
+      function myCustomInteraction() {
+        var tool = new paper.Tool();
+
+        tool.onMouseDown = function(event) {
+          var hit = mandala.item.hitTest(event.point, {
+            tolerance: 10,
+            fill: true
+          });
+          if (hit) {
+            hit.item.fillColor = cp.history[cp.history.length - 1];
+          }
+        }
+      }
+
+
+      // create a color palette with the given colors
+      function createColorPalette(colors) {
+
+        // create a swatch for each color
+        for (var i = colors.length - 1; i >= 0; i--) {
+          var $swatch = $("<div>").css("background-color", colors[i])
+            .addClass("swatch");
+          $swatch.click(function() {
+            // add color to the color palette history
+            for( var i = 0; i < arr.length; i++){ 
+               if ( arr[i] === 5) {
+                 arr.splice(i, 1); 
+               }
+            }
+            cp.history.push($(this).css("background-color"));
+            console.log($(this).css("background-color"));
+          });
+          cp.$container.append($swatch);
+        }
+      }
+
+      // loads a set of colors from a json to create a color palette
+      function getColorsCreatePalette() {
+        cp.$container.html(" ");
+        $.getJSON('/static/coloring/vendors/material/material-colors.json', function(colors) {
+//           var keys = Object.keys(colors);
+//           for (var i = keys.length - 1; i >= 0; i--) {
+//             cp.options.push(colors[keys[i]][500]);
+//           }
+//           createColorPalette(cp.options);
+//           for (var i = cp.history.legnth - 1; i >= 0; i++) {
+//             cp.options.push(cp.history[i]);
+//           }
+//           createColorPalette(cp.options)
+          createColorPalette(cp.history);
+        });
+      }
+
+      function init(custom) {
+        paper.setup(canvas);
+        getColorsCreatePalette();
+
+        paper.project.importSVG(mandala.filePath, function(item) {
+          mandala.item = item._children["design-freepik"];
+          paper.project.insertLayer(0, mandala.item);
+
+          if (custom) {
+            myCustomInteraction();
+          } else {
+            myGradientInteraction();
+          }
+
+        });
+      }
+      
+      function getRandomColor() {  // returns in 6 character format, not rgb format.
+        var letters = '0123456789ABCDEF';
+        var color = '#';
+          for (var i = 0; i < 6; i++) {
+          color += letters[Math.floor(Math.random() * 16)];
+          }
+        return color;
+      }
+    
+      function setRandomColor() {
+        let selectedColor = hexToRgb(getRandomColor()); //convert from 6 character to rgb(x, y, z) format.
+        $("#colorpad").css("background-color", selectedColor);
+        var $swatch = $("<div>").css("background-color", selectedColor)
+              .addClass("swatch");
+        $swatch.click(function(){
+						// add color to the color palette history
+            cp.history.push(selectedColor);
+        });
+//         cp.history.push(selectedColor);
+        cp.$container.prepend($swatch);
+        console.log(cp.history);
+      }
+      
+      $(".fa-dice").click(function() {  //when you click on the "random color" button.
+        setRandomColor();
+      })
+      
+      function update(picker) {
+          document.getElementById('hex-str').innerHTML = picker.toHEXString();
+          document.getElementById('rgb-str').innerHTML = picker.toRGBString();
+
+          document.getElementById('rgb').innerHTML =
+              Math.round(picker.rgb[0]) + ', ' +
+              Math.round(picker.rgb[1]) + ', ' +
+              Math.round(picker.rgb[2]);
+
+          document.getElementById('hsv').innerHTML =
+              Math.round(picker.hsv[0]) + '&deg;, ' +
+              Math.round(picker.hsv[1]) + '%, ' +
+              Math.round(picker.hsv[2]) + '%';
+      }
+      
+      // logs color picked by colorwheel
+      $("#colorWheel").change(function() {
+          let selectedColor = hexToRgb(document.getElementById('colorWheel').value);
+//           createColorPalette(cp.history);
+          var $swatch = $("<div>").css("background-color", selectedColor)
+              .addClass("swatch");
+          $swatch.click(function(){
+						// add color to the color palette history
+					  	cp.history.push(selectedColor);
+					});
+          cp.$container.prepend($swatch);
+          console.log(cp.history);
+      });
+      
+      // convert hex to rgb
+      function hexToRgb( colour ) {
+          var r,g,b;
+            if ( colour.charAt(0) == '#' ) {
+                colour = colour.substr(1);
+          }
+
+          r = colour.charAt(0) + '' + colour.charAt(1);
+          g = colour.charAt(2) + '' + colour.charAt(3);
+          b = colour.charAt(4) + '' + colour.charAt(5);
+
+          r = parseInt( r,16 );
+          g = parseInt( g,16 );
+          b = parseInt( b ,16);
+          return "rgb(" + r + ", " + g + ", " + b + ")";
+      }
+      
+      $('.fa-history').on('click', function(event) {        
+        $('#color-palette').toggle('show');
+        $('.pallete-des').toggle('show');
+      });
+      
+      $('.fa-palette').on('click', function(event) {        
+        $('#colorWheel').toggle('show');
+        $('.wheel-des').toggle('show');
+      });
+      $('.fa-dice').on('click', function(event) {        
+        $('#colorpad').toggle('show');
+      });
+
+      // To see your myGradientInteraction version visit: 
+      // http://<your url>:8000/coloring/?type=gradient
+      // To see your myCustomInteraction version visit: 
+      // http://<your url>:8000/coloring/
+      var url = window.location.href;
+      if (url.indexOf("gradient") > -1) {
+        init(false);
+      } else {
+        init(true);
+      }
+    }
+
+  </script>
+</head>
+<body>
+  
+  <div class="container-fluid" style="padding: 20px;">
+    <div class = "row">
+      <div class = "col-sm-12">
+        <canvas id="myCanvas" width="700px" height="700px"></canvas>    
+      </div>
+    </div>
+    <div class = "row palette">
+       <div id="color-palette"></div>
+    </div>
+    <div class = "row">
+        <input id="colorWheel" class="jscolor" value="ffcc00">
+    </div>
+  </div>
+  
+  <p class = "pallete-des">
+    Pallete History
+  </p>
+  
+  <p class = "wheel-des">
+    Color Wheel
+  </p>
+  
+  <div class="container-fluid" style="padding-top: 80px;">
+    <div class = "row">
+      <div class = "col-sm-4 icon-container">
+        <i class="fas fa-history" style = "font-size: 100px;"> </i>  <!-- history icon -->
+      </div>
+      <div class = "col-sm-4 icon-container">
+        <i class="fas fa-palette" style = "font-size: 100px;"> </i>
+      </div>
+      <div class = "col-sm-4 icon-container">
+        <i class="fas fa-dice" style = "font-size: 100px;"> </i>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js" type="button"></script> <!-- for random color generator icon-->
+    </div>
+  </div>
+   
+</body>
+</html>
